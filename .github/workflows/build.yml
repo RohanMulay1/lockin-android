@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -45,3 +47,14 @@ jobs:
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      # The in-app updater reads releases/latest; tag v1.1.<run> matches the APK versionCode.
+      - name: Publish release for in-app updates
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v1.1.${{ github.run_number }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk LockIn.apk
+          git log -1 --pretty=%B > notes.md
+          gh release create "$TAG" LockIn.apk --title "LockIn $TAG" --notes-file notes.md --latest

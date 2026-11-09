@@ -22,6 +22,7 @@ import com.rohan.lockin.domain.mmss
 import com.rohan.lockin.domain.rupees
 import com.rohan.lockin.ui.LockInViewModel
 import com.rohan.lockin.ui.UiState
+import com.rohan.lockin.ui.UpdateState
 import com.rohan.lockin.ui.components.BigRedButton
 import com.rohan.lockin.ui.components.Eyebrow
 import com.rohan.lockin.ui.components.MonoNumber
@@ -43,6 +44,9 @@ fun HomeScreen(ui: UiState, vm: LockInViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item { ScreenHeader("Trade desk") { SessionChip(ui) } }
+        if (ui.update is UpdateState.Available || ui.update is UpdateState.Downloading) {
+            item { UpdateBanner(ui.update, vm::installUpdate) }
+        }
         if (!ui.readinessDone) item { ReadinessCard(vm::submitReadiness) }
         item { PnlHero(ui, vm::setPnl) }
         if (ui.inNoTradeWindow) {

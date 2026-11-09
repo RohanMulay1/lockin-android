@@ -53,6 +53,7 @@ fun SettingsScreen(ui: UiState, vm: LockInViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         ScreenHeader("Settings")
+        UpdatesPanel(ui, onCheck = vm::checkForUpdates, onInstall = vm::installUpdate)
         HardLimitsPanel()
         KiteBlockerPanel()
         AlarmsPanel(ui, vm)

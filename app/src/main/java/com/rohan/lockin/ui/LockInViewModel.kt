@@ -9,6 +9,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.rohan.lockin.LockInApp
 import com.rohan.lockin.data.LockInRepository
+import com.rohan.lockin.data.UpdateChecker
+import java.io.IOException
 import com.rohan.lockin.data.db.TradeEntity
 import com.rohan.lockin.domain.AppState
 import com.rohan.lockin.domain.COOLDOWN_MIN
@@ -42,6 +44,8 @@ class LockInViewModel(
 ) : AndroidViewModel(app) {
 
     private val overlay = MutableStateFlow(Overlay.None)
+    private val update = MutableStateFlow<UpdateState>(UpdateState.Idle)
+    private val installedVersion = UpdateChecker.installedVersionCode(app)
 
     private val ticker = flow {
         while (true) {
@@ -50,9 +54,19 @@ class LockInViewModel(
         }
     }
 
+    private val transient = combine(overlay, update) { ov, up -> ov to up }
+
     val ui: StateFlow<UiState> =
-        combine(repo.state, ticker, repo.dailyLogs, repo.recentTrades, overlay) { s, now, logs, trades, ov ->
-            UiState(app = s, nowMs = now, logs = logs, trades = trades, overlay = ov)
+        combine(repo.state, ticker, repo.dailyLogs, repo.recentTrades, transient) { s, now, logs, trades, (ov, up) ->
+            UiState(
+                app = s,
+                nowMs = now,
+                logs = logs,
+                trades = trades,
+                overlay = ov,
+                update = up,
+                installedVersion = installedVersion,
+            )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
 
     init {
@@ -70,6 +84,40 @@ class LockInViewModel(
         val s = repo.update { if (it.quitTs == 0L) it.copy(quitTs = System.currentTimeMillis()) else it }
         Notifications.postStatus(app, s)
         AlarmScheduler.scheduleDaily(app, skipToday = s.holidayDay == todayEpochDay())
+        checkForUpdates()
+    }
+
+    // ---- In-app updates ----
+
+    fun checkForUpdates() {
+        if (update.value is UpdateState.Downloading) return
+        viewModelScope.launch {
+            update.value = UpdateState.Checking
+            val release = UpdateChecker.latest()
+            update.value = when {
+                release == null -> UpdateState.Failed("Couldn't reach GitHub. Try again later.")
+                release.versionCode > installedVersion -> UpdateState.Available(release)
+                else -> UpdateState.UpToDate
+            }
+        }
+    }
+
+    fun installUpdate() {
+        val release = (update.value as? UpdateState.Available)?.release ?: return
+        if (!UpdateChecker.canInstall(app)) {
+            UpdateChecker.openInstallPermissionSettings(app)
+            return
+        }
+        viewModelScope.launch {
+            update.value = UpdateState.Downloading(release, 0f)
+            try {
+                val apk = UpdateChecker.download(app, release.apkUrl) { p -> update.value = UpdateState.Downloading(release, p) }
+                update.value = UpdateState.Available(release)
+                UpdateChecker.install(app, apk)
+            } catch (e: IOException) {
+                update.value = UpdateState.Failed("Download failed: ${e.message ?: "network error"}")
+            }
+        }
     }
 
     fun refreshStatus() {

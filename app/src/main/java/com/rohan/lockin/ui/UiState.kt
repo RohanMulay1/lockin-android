@@ -1,5 +1,6 @@
 package com.rohan.lockin.ui
 
+import com.rohan.lockin.data.ReleaseInfo
 import com.rohan.lockin.data.db.DailyLogEntity
 import com.rohan.lockin.data.db.TradeEntity
 import com.rohan.lockin.domain.AppState
@@ -13,12 +14,23 @@ import com.rohan.lockin.domain.mmss
 
 enum class Overlay { None, Breathing, Grounding }
 
+sealed interface UpdateState {
+    data object Idle : UpdateState
+    data object Checking : UpdateState
+    data object UpToDate : UpdateState
+    data class Available(val release: ReleaseInfo) : UpdateState
+    data class Downloading(val release: ReleaseInfo, val progress: Float) : UpdateState
+    data class Failed(val message: String) : UpdateState
+}
+
 data class UiState(
     val app: AppState = AppState(),
     val nowMs: Long = 0L,
     val logs: List<DailyLogEntity> = emptyList(),
     val trades: List<TradeEntity> = emptyList(),
     val overlay: Overlay = Overlay.None,
+    val update: UpdateState = UpdateState.Idle,
+    val installedVersion: Long = 0L,
 ) {
     val today: Long get() = epochDayOf(nowMs)
     val isLocked: Boolean get() = app.lockUntil > nowMs
