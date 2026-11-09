@@ -1,5 +1,6 @@
 package com.rohan.lockin.ui
 
+import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -12,15 +13,19 @@ import com.rohan.lockin.data.db.TradeEntity
 import com.rohan.lockin.domain.AppState
 import com.rohan.lockin.domain.COOLDOWN_MIN
 import com.rohan.lockin.domain.LOCKOUT_MIN
+import com.rohan.lockin.domain.LockReason
 import com.rohan.lockin.domain.RiskEngine
 import com.rohan.lockin.domain.SessionRules
+import com.rohan.lockin.domain.TIME_STOP_MIN
 import com.rohan.lockin.domain.Verdict
 import com.rohan.lockin.domain.epochDayOf
 import com.rohan.lockin.domain.snapshot
 import com.rohan.lockin.domain.todayEpochDay
 import com.rohan.lockin.haptics.Haptics
 import com.rohan.lockin.notify.AlarmScheduler
+import com.rohan.lockin.notify.NoTradeWindowReceiver
 import com.rohan.lockin.notify.Notifications
+import com.rohan.lockin.notify.TimeStopReceiver
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -208,6 +213,23 @@ class LockInViewModel(
         Notifications.postAudit(app)
     }
 
+    /** 30-second lock that exercises the overlay, alarm and Kite block without closing the session. */
+    fun fireTestLockout() {
+        viewModelScope.launch {
+            repo.update { it.copy(lockUntil = System.currentTimeMillis() + TEST_LOCK_MS, lockReason = LockReason.TEST.name) }
+            Notifications.postAlert(app, Notifications.ID_LOCK, "🔒 ${LockReason.TEST.headline}", LockReason.TEST.detail)
+        }
+    }
+
+    /** Sends the real time-stop broadcast, so the test covers the same path as a live trade. */
+    fun fireTestTimeStop() {
+        app.sendBroadcast(Intent(app, TimeStopReceiver::class.java).putExtra(TimeStopReceiver.EXTRA_MINUTE, TIME_STOP_MIN))
+    }
+
+    fun fireTestNoTradeWindow() {
+        app.sendBroadcast(Intent(app, NoTradeWindowReceiver::class.java))
+    }
+
     // ---- Internals ----
 
     private fun mutate(block: (AppState, Long) -> Pair<AppState, Verdict>) {
@@ -249,6 +271,7 @@ class LockInViewModel(
     companion object {
         private const val TICK_MS = 1_000L
         private const val ROLLOVER_CHECK_MS = 60_000L
+        private const val TEST_LOCK_MS = 30_000L
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

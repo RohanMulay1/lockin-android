@@ -21,6 +21,7 @@ enum class LockReason(val headline: String, val detail: String) {
     MAX_DRAWDOWN("MAX DRAWDOWN REACHED (-1R)", "CLOSE BROKER IMMEDIATELY. WALK AWAY."),
     TRADE_CAP("TRADE CAP EXCEEDED", "Overtrading kills your edge. CLOSE BROKER. WALK AWAY."),
     GIVE_BACK("YOU GAVE BACK HALF THE DAY", "Protect the green. CLOSE BROKER. WALK AWAY."),
+    TEST("TEST LOCKOUT (30 S)", "This is only a test. Open Kite now to see the block screen."),
 }
 
 sealed interface Verdict {

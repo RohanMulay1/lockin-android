@@ -111,8 +111,31 @@ fun SettingsScreen(ui: UiState, vm: LockInViewModel) {
                     Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
                 )
             }) { Text("Open notification settings") }
-            Button(onClick = vm::fireTestAudit) { Text("FIRE TEST AUDIT") }
         }
+
+        TestToolsCard(vm)
+    }
+}
+
+@Composable
+private fun TestToolsCard(vm: LockInViewModel) {
+    SectionCard("Test tools") {
+        Text(
+            "Each button fires the real alarm (sound + strong vibration). Keep alarm volume up.",
+            color = Muted,
+            fontSize = 12.sp,
+        )
+        Button(onClick = vm::fireTestAudit, modifier = Modifier.fillMaxWidth()) { Text("TEST HOURLY AUDIT") }
+        Button(onClick = vm::fireTestTimeStop, modifier = Modifier.fillMaxWidth()) { Text("TEST 30-MIN TIME STOP ALARM") }
+        Button(onClick = vm::fireTestNoTradeWindow, modifier = Modifier.fillMaxWidth()) { Text("TEST 10:30 NO-TRADE ALARM") }
+        OutlinedButton(onClick = vm::fireTestLockout, modifier = Modifier.fillMaxWidth()) {
+            Text("TEST LOCKOUT + KITE BLOCK (30 S)", color = Crimson)
+        }
+        Text(
+            "After the test lockout starts, open Kite: the block screen should cover it until the 30 s end.",
+            color = Muted,
+            fontSize = 12.sp,
+        )
     }
 }
 

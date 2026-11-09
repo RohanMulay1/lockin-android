@@ -28,8 +28,10 @@ android {
         applicationId = "com.rohan.lockin"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        // CI run number keeps every build installable over the previous one.
+        val buildNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
+        versionCode = buildNumber
+        versionName = "1.1.$buildNumber"
     }
 
     buildTypes {
