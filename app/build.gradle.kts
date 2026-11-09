@@ -5,9 +5,24 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+// Stable key (from CI secrets) so new APKs install over old ones without wiping data.
+val stableKeystore = System.getenv("LOCKIN_KEYSTORE_PATH")?.let { file(it) }?.takeIf { it.exists() }
+val stableKeystorePassword = System.getenv("LOCKIN_KEYSTORE_PASSWORD")
+
 android {
     namespace = "com.rohan.lockin"
     compileSdk = 34
+
+    signingConfigs {
+        if (stableKeystore != null && stableKeystorePassword != null) {
+            create("stable") {
+                storeFile = stableKeystore
+                storePassword = stableKeystorePassword
+                keyAlias = "lockin"
+                keyPassword = stableKeystorePassword
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.rohan.lockin"
@@ -18,6 +33,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfigs.findByName("stable")?.let { signingConfig = it }
+        }
         release {
             isMinifyEnabled = false
         }

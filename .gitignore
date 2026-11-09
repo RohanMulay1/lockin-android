@@ -9,3 +9,4 @@ captures/
 dist/
 *.jks
 *.keystore
+keystore/
