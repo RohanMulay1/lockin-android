@@ -5,21 +5,40 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import com.rohan.lockin.ui.theme.Emerald
+import com.rohan.lockin.ui.theme.Line
+import com.rohan.lockin.ui.theme.Muted
+import com.rohan.lockin.ui.theme.Surface1
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -54,6 +73,10 @@ class MainActivity : ComponentActivity() {
     private val openAudit = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+        )
         super.onCreate(savedInstanceState)
         openAudit.value = intent?.getBooleanExtra(Notifications.EXTRA_OPEN_AUDIT, false) == true
         setContent {
@@ -90,20 +113,11 @@ private fun LockInRoot(openAudit: MutableState<Boolean>) {
         Scaffold(
             containerColor = Black0,
             bottomBar = {
-                NavigationBar(containerColor = Black0) {
-                    TABS.forEach { tab ->
-                        NavigationBarItem(
-                            selected = current == tab.route,
-                            onClick = {
-                                nav.navigate(tab.route) {
-                                    popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) },
-                        )
+                PillNavBar(current) { route ->
+                    nav.navigate(route) {
+                        popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 }
             },
@@ -130,6 +144,41 @@ private fun LockInRoot(openAudit: MutableState<Boolean>) {
             Overlay.Breathing -> BreathingScreen(onDone = vm::closeOverlay)
             Overlay.Grounding -> GroundingScreen(onDone = vm::closeOverlay)
             Overlay.None -> Unit
+        }
+    }
+}
+
+/** Floating pill navigation: hairline capsule, selected tab gets an emerald tint. */
+@Composable
+private fun PillNavBar(current: String?, onSelect: (String) -> Unit) {
+    val outer = RoundedCornerShape(26.dp)
+    val inner = RoundedCornerShape(20.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .clip(outer)
+            .background(Surface1)
+            .border(1.dp, Line, outer)
+            .padding(6.dp),
+    ) {
+        TABS.forEach { tab ->
+            val selected = current == tab.route
+            val tint = if (selected) Emerald else Muted
+            Column(
+                Modifier
+                    .weight(1f)
+                    .clip(inner)
+                    .background(if (selected) Emerald.copy(alpha = 0.12f) else Color.Transparent)
+                    .clickable { onSelect(tab.route) }
+                    .padding(vertical = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Icon(tab.icon, contentDescription = tab.label, tint = tint, modifier = Modifier.size(20.dp))
+                Text(tab.label.uppercase(), style = MaterialTheme.typography.labelSmall, color = tint)
+            }
         }
     }
 }

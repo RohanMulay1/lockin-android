@@ -9,31 +9,32 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rohan.lockin.domain.mmss
 import com.rohan.lockin.ui.UiState
+import com.rohan.lockin.ui.components.GhostButton
 import com.rohan.lockin.ui.components.MonoNumber
+import com.rohan.lockin.ui.components.PrimaryButton
+import com.rohan.lockin.ui.components.StatusChip
 import com.rohan.lockin.ui.components.blockTouches
 import com.rohan.lockin.ui.theme.Crimson
 import com.rohan.lockin.ui.theme.LockRed
+import com.rohan.lockin.ui.theme.Muted
+import com.rohan.lockin.ui.theme.OnBg
 
 const val HELPLINE_NUMBER = "14416"
 
@@ -44,36 +45,49 @@ fun TiltDialog(ui: UiState, onBreathe: () -> Unit) {
     val reason = ui.lockReason
     BackHandler(enabled = true) {}
     Box(
-        Modifier.fillMaxSize().background(LockRed).blockTouches(),
+        Modifier
+            .fillMaxSize()
+            .background(LockRed)
+            .drawBehind {
+                drawRect(
+                    Brush.radialGradient(
+                        colors = listOf(Crimson.copy(alpha = 0.28f), Color.Transparent),
+                        center = Offset(size.width / 2f, size.height * 0.35f),
+                        radius = size.maxDimension * 0.6f,
+                    ),
+                )
+            }
+            .blockTouches()
+            .systemBarsPadding(),
         contentAlignment = Alignment.Center,
     ) {
         Column(
             Modifier.padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Icon(Icons.Filled.Lock, contentDescription = null, tint = Crimson, modifier = Modifier.size(64.dp))
-            Text(reason.headline, color = Crimson, fontSize = 28.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
-            Text(reason.detail, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            MonoNumber(mmss(ui.lockRemainingMs), color = Color.White, size = 56.sp)
+            StatusChip("Locked", Crimson, live = true)
+            Text(reason.headline, style = MaterialTheme.typography.headlineMedium, color = Crimson, textAlign = TextAlign.Center)
+            Text(reason.detail, style = MaterialTheme.typography.bodyLarge, color = OnBg, textAlign = TextAlign.Center)
+            MonoNumber(mmss(ui.lockRemainingMs), color = OnBg, size = 80.sp)
             Text(
-                "This screen cannot be dismissed. Trading is closed for the rest of the day.",
-                color = Color.White.copy(alpha = 0.7f),
+                "This screen cannot be dismissed. Kite is blocked too; use its exit-only pass to close a position.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Muted,
                 textAlign = TextAlign.Center,
             )
-            Button(
+            PrimaryButton(
+                "Start breathing · 3 min",
                 onClick = onBreathe,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Crimson, contentColor = Color.White),
-            ) {
-                Text("START BREATHING (3 MIN)", fontWeight = FontWeight.Black)
-            }
-            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                container = Crimson,
+                contentColor = OnBg,
+            )
+            GhostButton(
+                "Need to talk? Tele-MANAS $HELPLINE_NUMBER",
                 onClick = { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$HELPLINE_NUMBER"))) },
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Need to talk? Tele-MANAS $HELPLINE_NUMBER", color = Color.White)
-            }
+            )
         }
     }
 }

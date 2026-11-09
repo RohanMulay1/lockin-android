@@ -1,15 +1,14 @@
 package com.rohan.lockin.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,8 +17,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rohan.lockin.domain.ONE_R
@@ -31,8 +30,13 @@ import com.rohan.lockin.domain.mmss
 import com.rohan.lockin.domain.rupees
 import com.rohan.lockin.domain.signedRupees
 import com.rohan.lockin.ui.UiState
+import com.rohan.lockin.ui.components.CheckRow
+import com.rohan.lockin.ui.components.Eyebrow
+import com.rohan.lockin.ui.components.MonoField
 import com.rohan.lockin.ui.components.MonoNumber
-import com.rohan.lockin.ui.components.SectionCard
+import com.rohan.lockin.ui.components.Panel
+import com.rohan.lockin.ui.components.PrimaryButton
+import com.rohan.lockin.ui.components.ProgressRail
 import com.rohan.lockin.ui.components.ToggleRow
 import com.rohan.lockin.ui.theme.Amber
 import com.rohan.lockin.ui.theme.Black0
@@ -45,99 +49,85 @@ import com.rohan.lockin.ui.theme.OnBg
 private const val MINUTE_MS = 60_000L
 
 @Composable
-fun ReadinessCard(ui: UiState, onSubmit: (Boolean, Boolean, Boolean, Boolean) -> Unit) {
-    if (ui.readinessDone) {
-        val cleared = ui.app.readinessCleared
-        SectionCard("Morning readiness", accent = if (cleared) Emerald else Crimson) {
-            Text(
-                if (cleared) "CLEARED TO TRADE" else "NO-TRADE DAY",
-                color = if (cleared) Emerald else Crimson,
-                fontWeight = FontWeight.Black,
-                fontSize = 20.sp,
-            )
-            Text(
-                if (cleared) "Rules on. 1 lot. SL order at entry. 30-min time stop." else "Bad sleep, travel, or tilt = no trades. The market will be here tomorrow.",
-                color = Muted,
-                fontSize = 13.sp,
-            )
-        }
-        return
-    }
+fun ReadinessCard(onSubmit: (Boolean, Boolean, Boolean, Boolean) -> Unit) {
     var slept by rememberSaveable { mutableStateOf(false) }
     var notTravelling by rememberSaveable { mutableStateOf(false) }
     var noBigLoss by rememberSaveable { mutableStateOf(false) }
     var calm by rememberSaveable { mutableStateOf(false) }
-    SectionCard("Morning readiness (before 09:15)", accent = Amber) {
+    Panel(accent = Amber, glow = true) {
+        Eyebrow("Morning check-in · before 09:15", color = Amber)
+        Text("Are you fit to trade today?", style = MaterialTheme.typography.titleLarge, color = OnBg)
         ToggleRow("Slept 6+ hours", slept) { slept = it }
         ToggleRow("Not travelling today", notTravelling) { notTravelling = it }
         ToggleRow("No big loss yesterday", noBigLoss) { noBigLoss = it }
         ToggleRow("Calm, not chasing a number", calm) { calm = it }
-        Button(onClick = { onSubmit(slept, notTravelling, noBigLoss, calm) }, modifier = Modifier.fillMaxWidth()) {
-            Text("LOCK IN READINESS")
-        }
+        PrimaryButton(
+            "Lock in check-in",
+            onClick = { onSubmit(slept, notTravelling, noBigLoss, calm) },
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
 @Composable
-fun PnlCard(ui: UiState, onSet: (String) -> Unit) {
+fun PnlHero(ui: UiState, onSet: (String) -> Unit) {
     val s = ui.app
     var input by rememberSaveable { mutableStateOf("") }
-    val pnlColor = if (s.sessionPnl < 0) Crimson else if (s.sessionPnl > 0) Emerald else OnBg
-    val drawdownUsed = ((-s.sessionPnl).coerceIn(0, ONE_R)).toFloat() / ONE_R
-    SectionCard("Session P&L", accent = pnlColor) {
-        MonoNumber(signedRupees(s.sessionPnl), color = pnlColor, size = 40.sp)
-        LinearProgressIndicator(
-            progress = { drawdownUsed },
-            modifier = Modifier.fillMaxWidth().height(8.dp),
-            color = Crimson,
-            trackColor = Line,
-        )
-        Text("Room to -1R: ${rupees((ONE_R + s.sessionPnl).coerceAtLeast(0))}", color = Muted, fontSize = 12.sp)
-        RiskEngine.giveBackFloor(s.peakPnl)?.let { floor ->
-            Text("Peak ${rupees(s.peakPnl)} · give-back lock at ${rupees(floor)}", color = Amber, fontSize = 12.sp)
+    val pnlColor = when {
+        s.sessionPnl < 0 -> Crimson
+        s.sessionPnl > 0 -> Emerald
+        else -> OnBg
+    }
+    val drawdownUsed = (-s.sessionPnl).coerceIn(0, ONE_R).toFloat() / ONE_R
+    Panel(accent = if (s.sessionPnl == 0) null else pnlColor, glow = true) {
+        Eyebrow("Session P&L")
+        MonoNumber(signedRupees(s.sessionPnl), color = pnlColor, size = 52.sp)
+        ProgressRail(drawdownUsed, Crimson)
+        Row(Modifier.fillMaxWidth()) {
+            Text("Room to −1R", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = Muted)
+            MonoNumber(rupees((ONE_R + s.sessionPnl).coerceAtLeast(0)), size = 14.sp, color = OnBg)
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
+        RiskEngine.giveBackFloor(s.peakPnl)?.let { floor ->
+            Row(Modifier.fillMaxWidth()) {
+                Text("Peak ${rupees(s.peakPnl)} · give-back lock at", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = Amber)
+                MonoNumber(rupees(floor), size = 14.sp, color = Amber)
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MonoField(
                 value = input,
                 onValueChange = { v -> input = v.filter { it.isDigit() || it == '-' } },
-                label = { Text("Net P&L now (₹, e.g. -1200)") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                label = "Net P&L now (₹)",
                 modifier = Modifier.weight(1f),
             )
-            Button(onClick = { onSet(input); input = "" }) { Text("SET") }
+            PrimaryButton("Set", onClick = { onSet(input); input = "" }, modifier = Modifier.width(84.dp), container = OnBg)
         }
     }
 }
 
 @Composable
 fun CooldownCard(ui: UiState) {
-    SectionCard(title = null, accent = Crimson) {
-        Text("COOLDOWN — 2 LOSSES IN A ROW", color = Crimson, fontWeight = FontWeight.Black)
-        MonoNumber(mmss(ui.cooldownRemainingMs), color = Crimson)
-        Text("Stand up. Water. No chart until the timer ends.", color = OnBg, fontSize = 13.sp)
+    Panel(accent = Crimson, glow = true) {
+        Eyebrow("Cooldown · 2 losses in a row", color = Crimson)
+        MonoNumber(mmss(ui.cooldownRemainingMs), color = Crimson, size = 40.sp)
+        Text("Stand up. Water. No chart until the timer ends.", style = MaterialTheme.typography.bodyMedium, color = OnBg)
     }
 }
 
 @Composable
 fun PreflightCard(ui: UiState, onToggle: (String) -> Unit, onEnter: () -> Unit) {
     val block = ui.blockReason
-    SectionCard("Pre-flight gate", accent = if (block == null) Emerald else Line) {
+    val checked = PREFLIGHT_CHECKLIST.count { it.id in ui.app.checklist }
+    Panel(accent = if (block == null) Emerald else null) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Eyebrow("Pre-flight gate", Modifier.weight(1f))
+            MonoNumber("$checked/${PREFLIGHT_CHECKLIST.size}", size = 14.sp, color = if (checked == PREFLIGHT_CHECKLIST.size) Emerald else Muted)
+        }
         PREFLIGHT_CHECKLIST.forEach { item ->
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = item.id in ui.app.checklist, onCheckedChange = { onToggle(item.id) })
-                Text(item.label, color = OnBg, fontSize = 14.sp)
-            }
+            CheckRow(item.label, checked = item.id in ui.app.checklist) { onToggle(item.id) }
         }
-        Button(
-            onClick = onEnter,
-            enabled = block == null,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Emerald, contentColor = Black0),
-        ) {
-            Text("ENTER TRADE (1 LOT)", fontWeight = FontWeight.Black)
-        }
-        block?.let { Text(it, color = Crimson, fontSize = 13.sp) }
+        PrimaryButton("Enter trade · 1 lot", onClick = onEnter, enabled = block == null, modifier = Modifier.fillMaxWidth())
+        block?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = Crimson) }
     }
 }
 
@@ -145,33 +135,54 @@ fun PreflightCard(ui: UiState, onToggle: (String) -> Unit, onEnter: () -> Unit) 
 fun ActiveTradeCard(ui: UiState, onClose: (String) -> Unit) {
     var result by rememberSaveable { mutableStateOf("") }
     val elapsed = ui.tradeElapsedMs
+    val limitMs = TIME_STOP_MIN * MINUTE_MS
     val color = when {
-        elapsed >= TIME_STOP_MIN * MINUTE_MS -> Crimson
+        elapsed >= limitMs -> Crimson
         elapsed >= TIME_STOP_WARN_MIN * MINUTE_MS -> Amber
         else -> Emerald
     }
-    SectionCard("Trade open", accent = color) {
-        MonoNumber(mmss(elapsed), color = color, size = 44.sp)
-        val remaining = TIME_STOP_MIN * MINUTE_MS - elapsed
-        Text(
-            if (remaining > 0) "Time stop in ${mmss(remaining)} · SL order placed?" else "TIME STOP HIT — EXIT NOW",
-            color = color,
-            fontWeight = FontWeight.Bold,
-        )
-        OutlinedTextField(
+    val remaining = limitMs - elapsed
+    Panel(accent = color, glow = true) {
+        Eyebrow("Trade open · 30-min time stop", color = color)
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            TimeStopRing(progress = elapsed.toFloat() / limitMs, color = color)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                MonoNumber(mmss(elapsed), color = OnBg, size = 40.sp)
+                Text(
+                    if (remaining > 0) "${mmss(remaining)} left" else "EXIT NOW",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = color,
+                )
+            }
+        }
+        Text("SL order placed? No adding. No averaging down.", style = MaterialTheme.typography.bodySmall, color = Muted)
+        MonoField(
             value = result,
             onValueChange = { v -> result = v.filter { it.isDigit() || it == '-' } },
-            label = { Text("Result in ₹ (e.g. 2015 or -748)") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            label = "Result in ₹ (e.g. 2015 or -748)",
             modifier = Modifier.fillMaxWidth(),
         )
-        Button(
+        PrimaryButton(
+            "Close trade & log",
             onClick = { onClose(result); result = "" },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = OnBg, contentColor = Black0),
-        ) {
-            Text("CLOSE TRADE & LOG", fontWeight = FontWeight.Black)
-        }
+            modifier = Modifier.fillMaxWidth(),
+            container = OnBg,
+            contentColor = Black0,
+        )
+    }
+}
+
+@Composable
+private fun TimeStopRing(progress: Float, color: androidx.compose.ui.graphics.Color) {
+    Canvas(Modifier.size(196.dp)) {
+        val stroke = 10.dp.toPx()
+        drawCircle(color = Line, style = Stroke(width = stroke))
+        drawArc(
+            color = color,
+            startAngle = -90f,
+            sweepAngle = 360f * progress.coerceIn(0f, 1f),
+            useCenter = false,
+            style = Stroke(width = stroke, cap = StrokeCap.Round),
+        )
     }
 }

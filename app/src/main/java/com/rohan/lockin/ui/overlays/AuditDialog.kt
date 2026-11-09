@@ -3,7 +3,11 @@ package com.rohan.lockin.ui.overlays
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import com.rohan.lockin.ui.theme.Emerald
+import com.rohan.lockin.ui.theme.Muted
+import com.rohan.lockin.ui.theme.Surface1
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,7 +25,8 @@ fun AuditDialog(onSubmit: (oneLot: Boolean, slPlaced: Boolean, calm: Boolean) ->
     var calm by remember { mutableStateOf(true) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Hourly Tilt & Execution Audit") },
+        containerColor = Surface1,
+        title = { Text("Hourly tilt & execution audit", style = MaterialTheme.typography.titleLarge) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ToggleRow("Sticking to 1 lot", oneLot) { oneLot = it }
@@ -29,7 +34,7 @@ fun AuditDialog(onSubmit: (oneLot: Boolean, slPlaced: Boolean, calm: Boolean) ->
                 ToggleRow("Calm — no revenge impulse", calm) { calm = it }
             }
         },
-        confirmButton = { TextButton(onClick = { onSubmit(oneLot, slPlaced, calm) }) { Text("SUBMIT AUDIT") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Later") } },
+        confirmButton = { TextButton(onClick = { onSubmit(oneLot, slPlaced, calm) }) { Text("SUBMIT", color = Emerald) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("LATER", color = Muted) } },
     )
 }
