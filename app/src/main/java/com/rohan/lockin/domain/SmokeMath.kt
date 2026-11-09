@@ -32,5 +32,6 @@ object SmokeMath {
         return ratio.coerceIn(0.0, 1.0).toFloat()
     }
 
-    fun isUnlocked(m: Milestone, fromMs: Long, nowMs: Long): Boolean = progress(m, fromMs, nowMs) >= 1f
+    fun isUnlocked(m: Milestone, fromMs: Long, nowMs: Long): Boolean =
+        fromMs > 0L && nowMs - fromMs >= m.hours * HOUR_MS
 }
