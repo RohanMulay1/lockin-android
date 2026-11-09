@@ -36,6 +36,8 @@ data class AppState(
     val holidayDay: Long = -1L,
     val cleanDayStreak: Int = 0,
     val cigarettesToday: Int = 0,
+    val brokerPassUntil: Long = 0L,
+    val exitPassesToday: Int = 0,
 )
 
 fun AppState.snapshot() = SessionSnapshot(

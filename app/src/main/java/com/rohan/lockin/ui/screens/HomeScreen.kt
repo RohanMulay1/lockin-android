@@ -22,6 +22,7 @@ import com.rohan.lockin.domain.MARGIN_CAP
 import com.rohan.lockin.domain.ONE_R
 import com.rohan.lockin.domain.RiskEngine
 import com.rohan.lockin.domain.TRADE_CAP
+import com.rohan.lockin.domain.mmss
 import com.rohan.lockin.domain.rupees
 import com.rohan.lockin.ui.LockInViewModel
 import com.rohan.lockin.ui.UiState
@@ -47,6 +48,7 @@ fun HomeScreen(ui: UiState, vm: LockInViewModel) {
         item { ReadinessCard(ui, vm::submitReadiness) }
         item { RiskCard(ui) }
         item { PnlCard(ui, vm::setPnl) }
+        if (ui.inNoTradeWindow) item { NoTradeWindowCard(ui) }
         if (ui.app.sessionPnl < 0) item { RedDayCard() }
         if (ui.isCooldown) item { CooldownCard(ui) }
         item {
@@ -100,6 +102,14 @@ private fun RiskCard(ui: UiState) {
             color = Muted,
             fontSize = 12.sp,
         )
+    }
+}
+
+@Composable
+private fun NoTradeWindowCard(ui: UiState) {
+    SectionCard(title = null, accent = Crimson) {
+        Text("⛔ NO NEW TRADES · 10:30–11:15", color = Crimson, fontWeight = FontWeight.Black)
+        Text("Ends in ${mmss(ui.noTradeWindowRemainingMs)}. Manage open trades only.", color = OnBg, fontSize = 13.sp)
     }
 }
 

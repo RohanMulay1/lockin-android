@@ -64,7 +64,7 @@ class LockInViewModel(
         repo.ensureToday(todayEpochDay())
         val s = repo.update { if (it.quitTs == 0L) it.copy(quitTs = System.currentTimeMillis()) else it }
         Notifications.postStatus(app, s)
-        AlarmScheduler.scheduleNextAudit(app, skipToday = s.holidayDay == todayEpochDay())
+        AlarmScheduler.scheduleDaily(app, skipToday = s.holidayDay == todayEpochDay())
     }
 
     fun refreshStatus() {
@@ -200,7 +200,7 @@ class LockInViewModel(
         viewModelScope.launch {
             val today = todayEpochDay()
             repo.update { it.copy(holidayDay = if (on) today else -1L) }
-            AlarmScheduler.scheduleNextAudit(app, skipToday = on)
+            AlarmScheduler.scheduleDaily(app, skipToday = on)
         }
     }
 
@@ -226,22 +226,20 @@ class LockInViewModel(
     private fun react(verdict: Verdict) {
         when (verdict) {
             is Verdict.Lockout -> {
-                Haptics.heavy(app)
                 AlarmScheduler.cancelTimeStops(app)
                 Notifications.postAlert(
                     app,
                     Notifications.ID_LOCK,
-                    "LOCKED FOR $LOCKOUT_MIN MIN",
-                    "${verdict.reason.headline}. ${verdict.reason.detail}",
+                    "🔒 LOCKED FOR $LOCKOUT_MIN MIN — ${verdict.reason.headline}",
+                    "${verdict.reason.detail} Kite is blocked; exit-only pass if a position is open.",
                 )
             }
             Verdict.Cooldown -> {
-                Haptics.heavy(app)
                 Notifications.postAlert(
                     app,
                     Notifications.ID_COOLDOWN,
-                    "$COOLDOWN_MIN-MIN COOLDOWN",
-                    "2 losses in a row. Step away from the chart.",
+                    "🧊 $COOLDOWN_MIN-MIN COOLDOWN — 2 LOSSES IN A ROW",
+                    "Step away from the chart. Kite is blocked until the cooldown ends.",
                 )
             }
             Verdict.Clear -> Unit

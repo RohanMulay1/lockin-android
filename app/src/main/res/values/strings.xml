@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">LockIn</string>
+    <string name="guard_label">LockIn Kite blocker</string>
+    <string name="guard_description">Covers the Kite app with a block screen during a LockIn lockout, cooldown, closed session, no-trade day, or the 10:30–11:15 no-new-trades window. It only checks which app is open; it never reads or taps anything inside Kite.</string>
 </resources>

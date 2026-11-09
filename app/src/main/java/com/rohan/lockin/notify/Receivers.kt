@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import com.rohan.lockin.domain.TIME_STOP_MIN
 import com.rohan.lockin.domain.todayEpochDay
-import com.rohan.lockin.haptics.Haptics
 import com.rohan.lockin.lockInApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,23 +34,39 @@ class HourlyAuditReceiver : BroadcastReceiver() {
     }
 }
 
+/** 10:30 alarm: no new entries until 11:15. */
+class NoTradeWindowReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) = runAsync {
+        val state = context.lockInApp.container.store.state.first()
+        val holiday = state.holidayDay == todayEpochDay()
+        if (!holiday) {
+            Notifications.postAlert(
+                context,
+                Notifications.ID_WINDOW,
+                "⛔ NO NEW TRADES until 11:15",
+                "10:30–11:15 chop window. Manage open trades only. Kite is locked for new entries.",
+            )
+        }
+        AlarmScheduler.scheduleNoTradeWindow(context, skipToday = holiday)
+    }
+}
+
 /** 25-minute warning and 30-minute hard exit for the open trade. */
 class TimeStopReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val minute = intent.getIntExtra(EXTRA_MINUTE, TIME_STOP_MIN)
         if (minute >= TIME_STOP_MIN) {
-            Haptics.heavy(context)
             Notifications.postAlert(
                 context,
                 Notifications.ID_TIMESTOP,
-                "EXIT NOW — 30-MIN TIME STOP",
-                "Your trades held past 30 min lost ₹45,646 combined. Close it.",
+                "🚨 EXIT NOW — 30-MIN TIME STOP",
+                "Your trades held past 30 min lost ₹45,646 combined. Close it now.",
             )
         } else {
             Notifications.postAlert(
                 context,
                 Notifications.ID_TIMESTOP,
-                "5 MIN LEFT ON THIS TRADE",
+                "⚠️ 5 MIN LEFT ON THIS TRADE",
                 "Time stop at 30 min. If it isn't working, exit now.",
             )
         }
@@ -66,7 +81,7 @@ class TimeStopReceiver : BroadcastReceiver() {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) = runAsync {
         val state = context.lockInApp.container.store.state.first()
-        AlarmScheduler.scheduleNextAudit(context, skipToday = state.holidayDay == todayEpochDay())
+        AlarmScheduler.scheduleDaily(context, skipToday = state.holidayDay == todayEpochDay())
         Notifications.postStatus(context, state)
         if (state.tradeStartTs > 0L) AlarmScheduler.scheduleTimeStops(context, state.tradeStartTs)
     }

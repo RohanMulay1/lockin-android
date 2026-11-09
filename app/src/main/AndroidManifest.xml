@@ -35,6 +35,22 @@
             android:name=".notify.TimeStopReceiver"
             android:exported="false" />
         <receiver
+            android:name=".notify.NoTradeWindowReceiver"
+            android:exported="false" />
+
+        <service
+            android:name=".guard.BrokerGuardService"
+            android:exported="true"
+            android:label="@string/guard_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/broker_guard_config" />
+        </service>
+        <receiver
             android:name=".notify.BootReceiver"
             android:exported="true">
             <intent-filter>

@@ -66,6 +66,7 @@ object SessionRules {
             cooldownUntil = 0L,
             sessionClosed = false,
             cigarettesToday = 0,
+            exitPassesToday = 0,
             cleanDayStreak = streak,
         )
     }

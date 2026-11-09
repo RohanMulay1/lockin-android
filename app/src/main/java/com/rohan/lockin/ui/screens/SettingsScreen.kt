@@ -1,7 +1,9 @@
 package com.rohan.lockin.ui.screens
 
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
+import com.rohan.lockin.guard.BrokerGuardService
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -64,6 +66,7 @@ fun SettingsScreen(ui: UiState, vm: LockInViewModel) {
                 "Lockout" to "$LOCKOUT_MIN min",
                 "Cooldown after 2 losses" to "$COOLDOWN_MIN min",
                 "Give-back lock" to "50% of peak (peak ≥ ₹1,000)",
+                "No new trades" to "10:30–11:15",
             ).forEach { (k, v) ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(k, color = Muted, fontSize = 13.sp)
@@ -72,6 +75,8 @@ fun SettingsScreen(ui: UiState, vm: LockInViewModel) {
             }
             Text("No editing in the heat of the moment. Change them in code, on a weekend.", color = Muted, fontSize = 12.sp)
         }
+
+        KiteBlockerCard()
 
         SectionCard("Fortress") {
             OutlinedTextField(
@@ -107,6 +112,35 @@ fun SettingsScreen(ui: UiState, vm: LockInViewModel) {
                 )
             }) { Text("Open notification settings") }
             Button(onClick = vm::fireTestAudit) { Text("FIRE TEST AUDIT") }
+        }
+    }
+}
+
+@Composable
+private fun KiteBlockerCard() {
+    val context = LocalContext.current
+    val enabled = BrokerGuardService.isEnabled(context)
+    SectionCard("Kite blocker", accent = if (enabled) Emerald else Crimson) {
+        Text(
+            if (enabled) "ON — Kite is covered during lockouts, cooldowns and 10:30–11:15" else "OFF — Kite is not blocked",
+            color = if (enabled) Emerald else Crimson,
+            fontSize = 14.sp,
+        )
+        if (!enabled) {
+            Text(
+                "1. Tap App info → ⋮ (top right) → Allow restricted settings.\n" +
+                    "2. Tap Accessibility → Installed apps → LockIn Kite blocker → On.",
+                color = Muted,
+                fontSize = 12.sp,
+            )
+            OutlinedButton(onClick = {
+                context.startActivity(
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
+                )
+            }) { Text("1 · App info") }
+            Button(onClick = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }) {
+                Text("2 · Accessibility settings")
+            }
         }
     }
 }

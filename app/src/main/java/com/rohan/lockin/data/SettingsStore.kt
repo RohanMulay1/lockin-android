@@ -66,6 +66,8 @@ class SettingsStore(context: Context) {
         val holidayDay = longPreferencesKey("holiday_day")
         val cleanDayStreak = intPreferencesKey("clean_day_streak")
         val cigarettesToday = intPreferencesKey("cigarettes_today")
+        val brokerPassUntil = longPreferencesKey("broker_pass_until")
+        val exitPassesToday = intPreferencesKey("exit_passes_today")
     }
 
     private fun read(p: Preferences) = AppState(
@@ -91,6 +93,8 @@ class SettingsStore(context: Context) {
         holidayDay = p[Keys.holidayDay] ?: -1L,
         cleanDayStreak = p[Keys.cleanDayStreak] ?: 0,
         cigarettesToday = p[Keys.cigarettesToday] ?: 0,
+        brokerPassUntil = p[Keys.brokerPassUntil] ?: 0L,
+        exitPassesToday = p[Keys.exitPassesToday] ?: 0,
     )
 
     private fun write(p: MutablePreferences, s: AppState) {
@@ -116,5 +120,7 @@ class SettingsStore(context: Context) {
         p[Keys.holidayDay] = s.holidayDay
         p[Keys.cleanDayStreak] = s.cleanDayStreak
         p[Keys.cigarettesToday] = s.cigarettesToday
+        p[Keys.brokerPassUntil] = s.brokerPassUntil
+        p[Keys.exitPassesToday] = s.exitPassesToday
     }
 }
