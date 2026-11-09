@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="lockin_black">#FF0A0A0A</color>
+    <color name="lockin_emerald">#FF10B981</color>
+
+    <style name="Theme.LockIn" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/lockin_black</item>
+        <item name="android:statusBarColor">@color/lockin_black</item>
+        <item name="android:navigationBarColor">@color/lockin_black</item>
+    </style>
+</resources>
